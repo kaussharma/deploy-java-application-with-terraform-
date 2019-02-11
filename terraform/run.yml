@@ -1,0 +1,53 @@
+--- 
+- name: Wait for EC2 Instances
+  hosts: localhost
+  gather_facts: yes
+  remote_user: root
+  become: true
+
+  tasks:
+
+  # - name: set port newsfeed
+  #   shell: export APP_PORT=8010
+  #   environment: 
+  #          APP_PORT: 8020
+  - name: Extract archive
+    unarchive:
+       src: static.tgz
+       dest: ./
+
+  - name: spin frontend
+    shell: "python3 serve.py >frontend-out.log 2>&1&"
+    args:   
+        chdir: ./public/
+
+  - name: spin up newsfeed
+    shell: java -jar newsfeed.jar >newsfeeds-out.log 2>&1&
+    environment: 
+           APP_PORT: 8010
+    
+  # - name: set port quotes
+  #   shell: export APP_PORT=8020 
+
+  - name: spin up quotes
+    shell: java -jar quotes.jar >quotes-out.log 2>&1&
+    environment: 
+           APP_PORT: 8020
+
+  # - name: set variables front end
+  #   command: "{{ item }}"
+  #   with_items:
+  #      - export APP_PORT=8080 
+  #      - export STATIC_URL=http://localhost:8000 
+  #      - export NEWSFEED_SERVICE_URL=http://localhost:8010 
+  #      - export QUOTE_SERVICE_URL=http://localhost:8020 
+  #      - export NEWSFEED_SERVICE_TOKEN='T1&eWbYXNWG1w1^YGKDPxAWJ@^et^&kX' "
+   
+  - name: spin up front-end
+    shell: java -jar front-end.jar >front-end-out.log 2>&1&
+    environment: 
+           APP_PORT: 8080
+           STATIC_URL: "http://localhost:8000"
+           NEWSFEED_SERVICE_URL: "http://localhost:8010"
+           QUOTE_SERVICE_URL: "http://localhost:8020"
+           NEWSFEED_SERVICE_TOKEN: "T1&eWbYXNWG1w1^YGKDPxAWJ@^et^&kX"
